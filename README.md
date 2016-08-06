@@ -1,6 +1,6 @@
 # rn-pokevision
 
-React Native app leveraging the Pokévision API in order to display all the Pokémon around you.
+React Native app leveraging the GoRadar API in order to display all the Pokémon around you.
 
 Currently only supports iOS.
 
