@@ -1,14 +1,4 @@
-export function getData(lat, lng) {
-  return fetch(`https://pokevision.com/map/data/${lat}/${lng}`)
-    .then(res => res.json());
-}
-
-export function getScanData(lat, lng, scan) {
-  return fetch(`https://pokevision.com/map/data/${lat}/${lng}/${scan}`)
-    .then(res => res.json());
-}
-
-export function runScan(lat, lng) {
-  return fetch(`https://pokevision.com/map/scan/${lat}/${lng}`)
+export function getData(swLat, swLng, neLat, neLng) {
+  return fetch(`https://api.goradar.io/raw_data?&swLat=${swLat}&swLng=${swLng}&neLat=${neLat}&neLng=${neLng}`)
     .then(res => res.json());
 }

@@ -28,15 +28,6 @@ const styles = StyleSheet.create({
   buttonFollowActive: {
     backgroundColor: 'green',
   },
-  buttonScan: {
-    backgroundColor: 'green',
-  },
-  buttonScanLoading: {
-    backgroundColor: 'orange',
-  },
-  buttonScanThrottled: {
-    backgroundColor: 'blue',
-  },
   cursorContainer: {
     position: 'absolute',
     top: 0,
@@ -56,7 +47,7 @@ const styles = StyleSheet.create({
 });
 
 function Overlay(props) {
-  const { follow, loading, throttled, onToggleFollow, onScan } = props;
+  const { follow, onToggleFollow } = props;
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
@@ -77,18 +68,6 @@ function Overlay(props) {
             ]}
           />
         </TouchableWithoutFeedback>
-        <TouchableWithoutFeedback
-          onPress={(throttled || loading) ? null : onScan}
-        >
-          <View
-            style={[
-              styles.button,
-              styles.buttonScan,
-              loading && styles.buttonScanLoading,
-              throttled && styles.buttonScanThrottled,
-            ]}
-          />
-        </TouchableWithoutFeedback>
       </View>
     </View>
   );
@@ -96,11 +75,8 @@ function Overlay(props) {
 
 Overlay.propTypes = {
   follow: PropTypes.bool.isRequired,
-  loading: PropTypes.bool.isRequired,
-  throttled: PropTypes.bool.isRequired,
 
   onToggleFollow: PropTypes.func.isRequired,
-  onScan: PropTypes.func.isRequired,
 };
 
 export default Overlay;

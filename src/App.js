@@ -4,7 +4,7 @@ import moment from 'moment';
 import { keyBy } from 'lodash';
 
 import pokemonData from './pokemon.js';
-import { getData, getScanData, runScan } from './api';
+import { getData } from './api';
 
 import Overlay from './Overlay';
 
@@ -54,6 +54,8 @@ export default class App extends Component {
   onRegionChangeComplete = region => {
     this.latitude = region.latitude;
     this.longitude = region.longitude;
+    this.latitudeDelta = region.latitudeDelta;
+    this.longitudeDelta = region.longitudeDelta;
 
     if (!this.state.located) {
       this.setState({
@@ -68,20 +70,8 @@ export default class App extends Component {
   onRegionChange = region => {
     this.latitude = region.latitude;
     this.longitude = region.longitude;
-  };
-
-  onScan = () => {
-    const { latitude, longitude } = this;
-    this.setState({
-      scanInProgress: true,
-    });
-    runScan(latitude, longitude)
-      .then(res => {
-        this.scanId = res.jobId;
-        this.scanLatitude = latitude;
-        this.scanLongitude = longitude;
-        this.scanTimeout = setTimeout(this.retrieveScanResults, 1000);
-      });
+    this.latitudeDelta = region.latitudeDelta;
+    this.longitudeDelta = region.longitudeDelta;
   };
 
   onToggleFollow = () => {
@@ -91,22 +81,22 @@ export default class App extends Component {
   setPokemon = nextPokemon => ({
     pokemon: nextPokemon,
     annotations: nextPokemon.map(poke => ({
-      id: poke.id.toString(),
+      id: poke.uniqueId.toString(),
       latitude: poke.latitude,
       longitude: poke.longitude,
-      title: pokemonData[poke.pokemonId].name,
-      subtitle: moment(poke.expiration_time * 1000).format('HH:mm:ss'),
+      title: pokemonData[poke.id].name,
+      subtitle: moment(poke.expires).format('HH:mm:ss'),
       // Can't use view here. There's a bug in react-native where annotations
       // views are incorrectly reconciled.
-      image: pokemonData[poke.pokemonId].image,
+      image: pokemonData[poke.id].image,
     })),
-    pokemonById: keyBy(nextPokemon, 'id'),
+    pokemonById: keyBy(nextPokemon, 'uniqueId'),
   });
 
   updatePokemon = () => {
     clearTimeout(this.updateTimeout);
     const nextPokemon = this.state.pokemon.filter(pokemon =>
-      pokemon.expiration_time * 1000 > Date.now()
+      pokemon.expires > Date.now()
     );
 
     if (nextPokemon.length < this.state.pokemon.length) {
@@ -120,9 +110,9 @@ export default class App extends Component {
     const nextPokemon = this.state.pokemon.concat(
       pokemon
         .filter(poke =>
-          !this.state.pokemonById[poke.id] &&
+          !this.state.pokemonById[poke.uniqueId] &&
           !ignoreList.includes(
-            pokemonData[poke.pokemonId].name.toLowerCase()
+            pokemonData[poke.id].name.toLowerCase()
           )
         )
     );
@@ -135,34 +125,29 @@ export default class App extends Component {
 
   fetchPokemon = () => {
     clearTimeout(this.fetchTimeout);
-    getData(this.latitude, this.longitude)
+    const swLat = this.latitude + this.latitudeDelta;
+    const swLng = this.longitude + this.longitudeDelta;
+    const neLat = this.latitude - this.latitudeDelta;
+    const neLng = this.longitude - this.longitudeDelta;
+    getData(swLat, swLng, neLat, neLng)
       .then(res => {
-        this.setState(this.addPokemon(res.pokemon));
+        if (res.pokemons) {
+          this.setState(this.addPokemon(
+            res.pokemons.map(poke => ({
+              id: poke.pokemon_id,
+              uniqueId: poke.encounter_id,
+              expires: poke.disappear_time,
+              latitude: poke.latitude,
+              longitude: poke.longitude,
+            }))
+          ));
+        }
 
         this.fetchTimeout = setTimeout(this.fetchPokemon, 10000);
+      })
+      .catch(e => {
+        this.fetchTimeout = setTimeout(this.fetchPokemon, 10000);
       });
-  };
-
-  retrieveScanResults = () => {
-    getScanData(this.scanLatitude, this.scanLongitude, this.scanId)
-      .then(res => {
-        if (res.pokemon) {
-          this.setState({
-            ...this.addPokemon(res.pokemon),
-            scanInProgress: false,
-            scanThrottled: true,
-          });
-          this.scanTimeout = setTimeout(this.unthrottleScan, 30000);
-        } else {
-          this.scanTimeout = setTimeout(this.retrieveScanResults, 1000);
-        }
-      });
-  };
-
-  unthrottleScan = () => {
-    this.setState({
-      scanThrottled: false,
-    });
   };
 
   render() {
@@ -178,10 +163,7 @@ export default class App extends Component {
           zoomEnabled
         />
         <Overlay
-          onScan={this.onScan}
           onToggleFollow={this.onToggleFollow}
-          loading={this.state.scanInProgress}
-          throttled={this.state.scanThrottled}
           follow={this.state.follow}
         />
       </View>
