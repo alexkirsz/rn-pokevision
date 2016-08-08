@@ -125,10 +125,10 @@ export default class App extends Component {
 
   fetchPokemon = () => {
     clearTimeout(this.fetchTimeout);
-    const swLat = this.latitude + this.latitudeDelta;
-    const swLng = this.longitude + this.longitudeDelta;
-    const neLat = this.latitude - this.latitudeDelta;
-    const neLng = this.longitude - this.longitudeDelta;
+    const swLat = this.latitude - this.latitudeDelta / 2;
+    const swLng = this.longitude - this.longitudeDelta / 2;
+    const neLat = this.latitude + this.latitudeDelta / 2;
+    const neLng = this.longitude + this.longitudeDelta / 2;
     getData(swLat, swLng, neLat, neLng)
       .then(res => {
         if (res.pokemons) {
